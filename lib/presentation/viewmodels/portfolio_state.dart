@@ -9,6 +9,7 @@ class PortfolioState {
   final List<CodingLog> codingLogs;
   final bool isLoading;
   final String? error;
+  final int pomodoroMinutes;
 
   int get incompleteProjectCount => projects.where((p) => p.status != ProjectStatus.completed).length;
 
@@ -19,6 +20,7 @@ class PortfolioState {
     this.codingLogs = const [],
     this.isLoading = true,
     this.error,
+    this.pomodoroMinutes = 0,
   });
 
   PortfolioState copyWith({
@@ -28,6 +30,7 @@ class PortfolioState {
     List<CodingLog>? codingLogs,
     bool? isLoading,
     String? error,
+    int? pomodoroMinutes,
   }) {
     return PortfolioState(
       projects: projects ?? this.projects,
@@ -36,6 +39,7 @@ class PortfolioState {
       codingLogs: codingLogs ?? this.codingLogs,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
+      pomodoroMinutes: pomodoroMinutes ?? this.pomodoroMinutes,
     );
   }
 

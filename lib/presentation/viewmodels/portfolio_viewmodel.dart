@@ -11,6 +11,7 @@ class PortfolioState {
   final List<Repository> repositories;
   final Map<String, List<Commit>> projectCommits;
   final bool isLoading;
+  final int pomodoroMinutes;
 
   PortfolioState({
     this.codingLogs = const [],
@@ -18,6 +19,7 @@ class PortfolioState {
     this.repositories = const [],
     this.projectCommits = const {},
     this.isLoading = false,
+    this.pomodoroMinutes = 0,
   });
 
   String get todayCodingTime {
@@ -53,6 +55,7 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
     repositories: [],
     projectCommits: {},
     isLoading: false,
+    pomodoroMinutes: 0,
   ));
 
   Future<void> loadGitHubData(String username) async {
@@ -62,29 +65,24 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
       repositories: state.repositories,
       projectCommits: state.projectCommits,
       isLoading: true,
+      pomodoroMinutes: state.pomodoroMinutes,
     ));
 
     try {
-      print('Loading GitHub data for user: $username');
       final repositories = await gitHubService.getUserRepositories(username);
-      print('Repositories loaded: ${repositories.length}');
-
+      
       final projectDetails = await Future.wait(
         repositories.map((repo) async {
           final details = await gitHubService.getRepositoryDetails(username, repo.name);
           final commits = await gitHubService.getRecentCommits(username, repo.name);
-          return (repo, details, commits);  // 튜플로 변경
+          return (repo, details, commits);
         }),
       );
 
       final projects = projectDetails.map((entry) {
-        final (repo, details, commits) = entry;  // 튜플 분해
-        
-        // 첫 번째 커밋 날짜를 시작일로 사용
-        final startDate = commits.isNotEmpty 
-            ? commits.last.date  // commits는 최신순으로 정렬되어 있으므로 마지막 커밋이 가장 오래된 것
-            : repo.updatedAt;    // 커밋이 없는 경우 레포지토리 생성일 사용
-        
+        final (repo, details, commits) = entry;
+        final startDate = commits.isNotEmpty ? commits.last.date : repo.updatedAt;
+
         return PortfolioProject(
           title: repo.name,
           description: repo.description,
@@ -94,7 +92,6 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
         );
       }).toList();
 
-      // 최근 커밋 정보도 상태에 포함
       final projectCommits = Map.fromEntries(
         projectDetails.map((entry) => MapEntry(entry.$1.name, entry.$3))
       );
@@ -105,6 +102,7 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
         repositories: repositories,
         projectCommits: projectCommits,
         isLoading: false,
+        pomodoroMinutes: state.pomodoroMinutes,
       ));
     } catch (e) {
       print('Error loading GitHub data: $e');
@@ -114,6 +112,7 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
         repositories: state.repositories,
         projectCommits: state.projectCommits,
         isLoading: false,
+        pomodoroMinutes: state.pomodoroMinutes,
       ));
     }
   }
@@ -160,12 +159,26 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
 
   int get todayCommitCount {
     final today = DateTime.now();
-    return state.projectCommits.values
+    final todayStart = DateTime(today.year, today.month, today.day); // 오늘 시작 시간
+    final todayEnd = todayStart.add(const Duration(days: 1)); // 내일 시작 시간
+
+    final count = state.projectCommits.values
         .expand((commits) => commits)
         .where((commit) =>
-            commit.date.year == today.year &&
-            commit.date.month == today.month &&
-            commit.date.day == today.day)
+            commit.date.isAfter(todayStart) && commit.date.isBefore(todayEnd))
         .length;
+
+    return count;
+  }
+
+  void updatePomodoroTime(int minutes) {
+    emit(PortfolioState(
+      codingLogs: state.codingLogs,
+      projects: state.projects,
+      repositories: state.repositories,
+      projectCommits: state.projectCommits,
+      isLoading: false,
+      pomodoroMinutes: state.pomodoroMinutes + minutes,
+    ));
   }
 } 

@@ -26,12 +26,13 @@ class PortfolioView extends StatelessWidget {
           backgroundColor: const Color(0xFF4F5D75),
         ),
         body: BlocBuilder<PortfolioViewModel, PortfolioState>(
-          builder: (context, state) {
+      builder: (context, state) {
             if (state.isLoading) {
               return const Center(child: CircularProgressIndicator());
             }
 
             final todayCommits = context.read<PortfolioViewModel>().todayCommitCount;
+            final pomodoroMinutes = context.read<PortfolioViewModel>().state.pomodoroMinutes;
 
             return ListView(
               padding: const EdgeInsets.all(20),
@@ -79,6 +80,14 @@ class PortfolioView extends StatelessWidget {
                         const SizedBox(height: 24),
                         Text(
                           '오늘 ${todayCommits}개의 커밋',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '포모도로 시간: ${pomodoroMinutes ~/ 60}시간 ${pomodoroMinutes % 60}분',
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 16,
@@ -225,12 +234,12 @@ class PortfolioView extends StatelessWidget {
                                               borderRadius: BorderRadius.circular(2),
                                             ),
                                           ),
-                                        ),
-                                      ],
-                                    ),
+              ),
+            ],
+          ),
                                     const SizedBox(height: 12),
                                     Row(
-                                      children: [
+                  children: [
                                         Container(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 8,
@@ -270,8 +279,8 @@ class PortfolioView extends StatelessWidget {
 
   bool _isToday(DateTime date) {
     final now = DateTime.now();
-    return date.year == now.year &&
-           date.month == now.month &&
+    return date.year == now.year && 
+           date.month == now.month && 
            date.day == now.day;
   }
 }
@@ -295,16 +304,16 @@ class ProjectCard extends StatelessWidget {
       child: InkWell(
         onTap: () {
           if (repository != null) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ProjectDetailView(
-                  project: project,
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ProjectDetailView(
+                project: project,
                   repository: repository!,
-                  commits: commits,
-                ),
+                commits: commits,
               ),
-            );
+            ),
+          );
           }
         },
         child: Padding(

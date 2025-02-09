@@ -83,7 +83,7 @@ class _FocusTimerState extends State<FocusTimer> with TickerProviderStateMixin {
     if (elapsedMinutes <= 0) return;
 
     final viewModel = context.read<PortfolioViewModel>();
-    viewModel.updateAdditionalTime(elapsedMinutes);
+    viewModel.updatePomodoroTime(elapsedMinutes.toInt());
     
     showDialog(
       context: context,
