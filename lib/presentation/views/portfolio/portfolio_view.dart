@@ -30,6 +30,7 @@ class _PortfolioViewState extends State<PortfolioView> {
     
     int hours = current.pomodoroSeconds ~/ 3600;
     int minutes = (current.pomodoroSeconds % 3600) ~/ 60;
+    int seconds = current.pomodoroSeconds % 60;
 
     showDialog(
       context: context,
@@ -50,8 +51,15 @@ class _PortfolioViewState extends State<PortfolioView> {
                 _TimeAdjustSection(
                   label: '분',
                   value: minutes,
-                  onDecrement: () => setState(() => minutes = (minutes - 5).clamp(0, 55)),
-                  onIncrement: () => setState(() => minutes = (minutes + 5).clamp(0, 55)),
+                  onDecrement: () => setState(() => minutes = (minutes - 1).clamp(0, 59)),
+                  onIncrement: () => setState(() => minutes = (minutes + 1).clamp(0, 59)),
+                ),
+                const SizedBox(height: 16),
+                _TimeAdjustSection(
+                  label: '초',
+                  value: seconds,
+                  onDecrement: () => setState(() => seconds = (seconds - 1).clamp(0, 59)),
+                  onIncrement: () => setState(() => seconds = (seconds + 1).clamp(0, 59)),
                 ),
               ],
             ),
@@ -62,7 +70,8 @@ class _PortfolioViewState extends State<PortfolioView> {
               ),
               TextButton(
                 onPressed: () {
-                  vm.setPomodoroTime(hours, minutes);
+                  final totalSeconds = (hours * 3600) + (minutes * 60) + seconds;
+                  vm.setPomodoroTime(totalSeconds);
                   Navigator.pop(context);
                 },
                 child: const Text('적용'),
@@ -87,9 +96,10 @@ class _PortfolioViewState extends State<PortfolioView> {
       ],
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('개발 현황'),
+          title: Text(_selectedIndex == 0 ? '개발 현황' : '포모도로 타이머'),
           backgroundColor: const Color(0xFF4F5D75),
         ),
+        backgroundColor: const Color(0xFFF5F6F8),
         body: IndexedStack(
           index: _selectedIndex,
           children: [
@@ -151,10 +161,33 @@ class _PortfolioViewState extends State<PortfolioView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 _buildSectionHeader(Icons.code_rounded, '오늘의 개발 활동'),
-                IconButton(
-                  onPressed: () => _showEditPomodoroDialog(context),
-                  icon: const Icon(Icons.edit_rounded, color: Colors.white),
-                  tooltip: '집중 시간 수정',
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showEditPomodoroDialog(context),
+                    borderRadius: BorderRadius.circular(4),
+                    child: Padding(
+                      padding: const EdgeInsets.all(4),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.edit_outlined,
+                            color: Colors.white.withOpacity(0.7),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            '수정',
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7),
+                              fontSize: 14,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),

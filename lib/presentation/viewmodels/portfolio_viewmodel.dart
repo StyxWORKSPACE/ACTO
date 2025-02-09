@@ -123,8 +123,7 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
     ));
   }
 
-  void setPomodoroTime(int hours, int minutes) {
-    final totalSeconds = (hours * 3600) + (minutes * 60);
+  void setPomodoroTime(int totalSeconds) {
     emit(state.copyWith(
       pomodoroSeconds: totalSeconds,
     ));
