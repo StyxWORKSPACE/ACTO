@@ -3,6 +3,7 @@ import '../../data/models/coding_log.dart';
 import '../../data/models/portfolio_project.dart';
 import '../../data/models/github_models.dart';
 import '../../data/services/github_service.dart';
+import '../../data/repositories/portfolio_repository.dart';
 
 class PortfolioState {
   final List<CodingLog> codingLogs;
@@ -40,26 +41,38 @@ class PortfolioState {
 }
 
 class PortfolioViewModel extends Cubit<PortfolioState> {
-  final GitHubService _gitHubService = GitHubService();
+  final PortfolioRepository portfolioRepository;
+  final GitHubService gitHubService;
   
-  PortfolioViewModel() : super(PortfolioState(
+  PortfolioViewModel({
+    required this.portfolioRepository,
+    required this.gitHubService,
+  }) : super(PortfolioState(
     codingLogs: [],
     projects: [],
+    repositories: [],
+    projectCommits: {},
+    isLoading: false,
   ));
 
   Future<void> loadGitHubData(String username) async {
     emit(PortfolioState(
       codingLogs: state.codingLogs,
       projects: state.projects,
+      repositories: state.repositories,
+      projectCommits: state.projectCommits,
       isLoading: true,
     ));
 
     try {
-      final repositories = await _gitHubService.getUserRepositories(username);
+      print('Loading GitHub data for user: $username');
+      final repositories = await gitHubService.getUserRepositories(username);
+      print('Repositories loaded: ${repositories.length}');
+
       final projectDetails = await Future.wait(
         repositories.map((repo) async {
-          final details = await _gitHubService.getRepositoryDetails(username, repo.name);
-          final commits = await _gitHubService.getRecentCommits(username, repo.name);
+          final details = await gitHubService.getRepositoryDetails(username, repo.name);
+          final commits = await gitHubService.getRecentCommits(username, repo.name);
           return (repo, details, commits);  // 튜플로 변경
         }),
       );
@@ -98,6 +111,8 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
       emit(PortfolioState(
         codingLogs: state.codingLogs,
         projects: state.projects,
+        repositories: state.repositories,
+        projectCommits: state.projectCommits,
         isLoading: false,
       ));
     }

@@ -4,17 +4,26 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../viewmodels/portfolio_viewmodel.dart';
 import '../../../data/models/github_models.dart';
 import '../../../presentation/views/portfolio/project_detail_view.dart';
+import '../../../data/repositories/portfolio_repository.dart';
+import '../../../data/services/github_service.dart';
+import 'package:http/http.dart' as http;
 
 class PortfolioView extends StatelessWidget {
   const PortfolioView({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final githubService = GitHubService();
+
     return BlocProvider(
-      create: (_) => PortfolioViewModel()..loadGitHubData('StyxWORKSPACE'),
+      create: (_) => PortfolioViewModel(
+        portfolioRepository: PortfolioRepository(),
+        gitHubService: githubService,
+      )..loadGitHubData('StyxWORKSPACE'),
       child: Scaffold(
         appBar: AppBar(
           title: const Text('개발 현황'),
+          backgroundColor: const Color(0xFF4F5D75),
         ),
         body: BlocBuilder<PortfolioViewModel, PortfolioState>(
           builder: (context, state) {
@@ -22,91 +31,234 @@ class PortfolioView extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
 
+            final todayCommits = state.projectCommits.values
+                .expand((commits) => commits)
+                .where((commit) => _isToday(commit.date))
+                .length;
+
             return ListView(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(20),
               children: [
-                // 오늘의 코딩 시간
-                Card(
+                // 오늘의 개발 활동 컨테이너
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF4F5D75), Color(0xFF2D3142)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
-                          '오늘의 개발 활동',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.code_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            const Text(
+                              '오늘의 개발 활동',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: 24),
                         Text(
-                          state.todayCodingTime,
-                          style: const TextStyle(fontSize: 16),
+                          '오늘 ${todayCommits}개의 커밋',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
-                const SizedBox(height: 16),
-                // 프로젝트 현황
-                Card(
+                const SizedBox(height: 20),
+                // 프로젝트 폴더 컨테이너
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF4F5D75), Color(0xFF2D3142)],
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
                   child: Padding(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.folder_rounded,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
                             const Text(
-                              '포트폴리오 현황',
+                              '프로젝트',
                               style: TextStyle(
-                                fontSize: 18,
+                                color: Colors.white,
+                                fontSize: 20,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-                            if (state.incompleteProjectCount > 0)
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.red[100],
-                                  borderRadius: BorderRadius.circular(4),
-                                ),
-                                child: Text(
-                                  '미완성 ${state.incompleteProjectCount}개',
-                                  style: TextStyle(
-                                    color: Colors.red[900],
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
-                        const SizedBox(height: 16),
-                        ...state.projects.map((project) {
-                          final repository = state.repositories.firstWhere(
-                            (r) => r.name == project.title,
-                            orElse: () => Repository(
-                              name: project.title,
-                              description: project.description,
-                              language: 'Unknown',
-                              stars: 0,
-                              updatedAt: DateTime.now(),
-                              isPrivate: false,
+                        const SizedBox(height: 24),
+                        if (state.repositories.isEmpty)
+                          const Center(
+                            child: Text(
+                              'GitHub 프로젝트가 없습니다',
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 14,
+                              ),
                             ),
-                          );
-                          final commits = state.projectCommits[project.title] ?? [];
-                          
-                          return ProjectCard(
-                            project: project,
-                            repository: repository,
-                            commits: commits,
-                          );
-                        }),
+                          )
+                        else
+                          ...state.repositories.map((repo) => Padding(
+                            padding: const EdgeInsets.only(bottom: 16),
+                            child: InkWell(
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ProjectDetailView(
+                                      project: PortfolioProject(
+                                        title: repo.name,
+                                        description: repo.description ?? '',
+                                        startDate: DateTime.now(),
+                                        status: ProjectStatus.inProgress,
+                                        completionPercentage: 70,
+                                      ),
+                                      repository: repo,
+                                      commits: state.projectCommits[repo.name] ?? [],
+                                    ),
+                                  ),
+                                );
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            repo.name,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        Text(
+                                          '70%',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (repo.description?.isNotEmpty ?? false) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        repo.description ?? '',
+                                        style: TextStyle(
+                                          color: Colors.white.withOpacity(0.7),
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 16),
+                                    Stack(
+                                      children: [
+                                        Container(
+                                          height: 4,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(2),
+                                          ),
+                                        ),
+                                        FractionallySizedBox(
+                                          widthFactor: 0.7,
+                                          child: Container(
+                                            height: 4,
+                                            decoration: BoxDecoration(
+                                              gradient: const LinearGradient(
+                                                colors: [Color(0xFF4F5D75), Colors.white],
+                                              ),
+                                              borderRadius: BorderRadius.circular(2),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.white.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            repo.language,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          )).toList(),
                       ],
                     ),
                   ),
@@ -117,6 +269,13 @@ class PortfolioView extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  bool _isToday(DateTime date) {
+    final now = DateTime.now();
+    return date.year == now.year &&
+           date.month == now.month &&
+           date.day == now.day;
   }
 }
 
@@ -138,16 +297,18 @@ class ProjectCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ProjectDetailView(
-                project: project,
-                repository: repository,
-                commits: commits,
+          if (repository != null) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ProjectDetailView(
+                  project: project,
+                  repository: repository!,
+                  commits: commits,
+                ),
               ),
-            ),
-          );
+            );
+          }
         },
         child: Padding(
           padding: const EdgeInsets.all(12),
