@@ -9,7 +9,7 @@ class PortfolioState {
   final List<CodingLog> codingLogs;
   final bool isLoading;
   final String? error;
-  final int pomodoroMinutes;
+  final int pomodoroSeconds;
 
   int get incompleteProjectCount => projects.where((p) => p.status != ProjectStatus.completed).length;
 
@@ -20,7 +20,7 @@ class PortfolioState {
     this.codingLogs = const [],
     this.isLoading = true,
     this.error,
-    this.pomodoroMinutes = 0,
+    this.pomodoroSeconds = 0,
   });
 
   CodingLog get todayCodingTime {
@@ -57,7 +57,7 @@ class PortfolioState {
     List<CodingLog>? codingLogs,
     bool? isLoading,
     String? error,
-    int? pomodoroMinutes,
+    int? pomodoroSeconds,
   }) {
     return PortfolioState(
       projects: projects ?? this.projects,
@@ -66,7 +66,7 @@ class PortfolioState {
       codingLogs: codingLogs ?? this.codingLogs,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
-      pomodoroMinutes: pomodoroMinutes ?? this.pomodoroMinutes,
+      pomodoroSeconds: pomodoroSeconds ?? this.pomodoroSeconds,
     );
   }
 } 

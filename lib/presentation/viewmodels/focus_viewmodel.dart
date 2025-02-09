@@ -56,9 +56,9 @@ class FocusViewModel extends Cubit<FocusState> {
   }
 
   void pauseTimer() {
-    final elapsedMinutes = (defaultDuration - state.remainingSeconds) ~/ 60;
-    if (elapsedMinutes > 0) {
-      context.read<PortfolioViewModel>().updatePomodoroTime(elapsedMinutes);
+    final elapsedSeconds = defaultDuration - state.remainingSeconds;
+    if (elapsedSeconds > 0) {
+      context.read<PortfolioViewModel>().updatePomodoroTime(elapsedSeconds);
     }
     
     emit(FocusState(
@@ -77,15 +77,15 @@ class FocusViewModel extends Cubit<FocusState> {
   }
 
   void _handleCompletion() {
-    final elapsedMinutes = (defaultDuration - state.remainingSeconds) ~/ 60;
-    if (elapsedMinutes > 0) {
-      context.read<PortfolioViewModel>().updatePomodoroTime(elapsedMinutes);
+    final elapsedSeconds = defaultDuration - state.remainingSeconds;
+    if (elapsedSeconds > 0) {
+      context.read<PortfolioViewModel>().updatePomodoroTime(elapsedSeconds);
       
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
           title: const Text('집중 시간 완료'),
-          content: Text('$elapsedMinutes분의 집중 시간이 기록되었습니다.'),
+          content: Text('${(elapsedSeconds / 60).toStringAsFixed(1)}분의 집중 시간이 기록되었습니다.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),

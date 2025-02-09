@@ -28,13 +28,13 @@ class _PortfolioViewState extends State<PortfolioView> {
     final vm = context.read<PortfolioViewModel>();
     final current = vm.state;
     
+    int hours = current.pomodoroSeconds ~/ 3600;
+    int minutes = (current.pomodoroSeconds % 3600) ~/ 60;
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setState) {
-          int hours = current.pomodoroMinutes ~/ 60;
-          int minutes = current.pomodoroMinutes % 60;
-
           return AlertDialog(
             title: const Text('집중 시간 수정'),
             content: Column(
@@ -62,7 +62,7 @@ class _PortfolioViewState extends State<PortfolioView> {
               ),
               TextButton(
                 onPressed: () {
-                  vm.setPomodoroTime(hours * 60 + minutes);
+                  vm.setPomodoroTime(hours, minutes);
                   Navigator.pop(context);
                 },
                 child: const Text('적용'),
@@ -147,7 +147,17 @@ class _PortfolioViewState extends State<PortfolioView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSectionHeader(Icons.code_rounded, '오늘의 개발 활동'),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _buildSectionHeader(Icons.code_rounded, '오늘의 개발 활동'),
+                IconButton(
+                  onPressed: () => _showEditPomodoroDialog(context),
+                  icon: const Icon(Icons.edit_rounded, color: Colors.white),
+                  tooltip: '집중 시간 수정',
+                ),
+              ],
+            ),
             const SizedBox(height: 24),
             Text(
               '오늘 ${state.todayCommitCount}개의 커밋',
@@ -155,11 +165,6 @@ class _PortfolioViewState extends State<PortfolioView> {
             ),
             const SizedBox(height: 8),
             _buildTimeInfo(state),
-            const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: () => _showEditPomodoroDialog(context),
-              child: const Text('집중 시간 수정'),
-            ),
           ],
         ),
       ),
@@ -167,11 +172,12 @@ class _PortfolioViewState extends State<PortfolioView> {
   }
 
   Widget _buildTimeInfo(PortfolioState state) {
-    final hours = state.pomodoroMinutes ~/ 3600;
-    final minutes = (state.pomodoroMinutes % 3600) ~/ 60;
+    final hours = state.pomodoroSeconds ~/ 3600;
+    final minutes = (state.pomodoroSeconds % 3600) ~/ 60;
+    final seconds = state.pomodoroSeconds % 60;
 
     return Text(
-      '총 집중 시간: ${hours}시간 ${minutes}분',
+      '총 집중 시간: ${hours}시간 ${minutes}분 ${seconds}초',
       style: const TextStyle(color: Colors.white, fontSize: 16),
     );
   }
