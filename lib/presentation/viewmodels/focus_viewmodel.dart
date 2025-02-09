@@ -26,6 +26,10 @@ class FocusViewModel extends Cubit<FocusState> {
   static const int defaultDuration = 25 * 60;
   final BuildContext context;
   
+  // 테스트를 위한 배속 설정 (기본값 1)
+  // 예: 2.0 = 2배속, 5.0 = 5배속
+  static const double timeMultiplier = 1.0;
+  
   FocusViewModel(this.context) : super(FocusState());
 
   void startFocusMode() {
@@ -41,7 +45,10 @@ class FocusViewModel extends Cubit<FocusState> {
 
   void _startTimer() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    // 타이머 간격을 배속에 맞게 조절 (1000ms = 1초)
+    final interval = (1000 / timeMultiplier).round();
+    
+    _timer = Timer.periodic(Duration(milliseconds: interval), (timer) {
       if (state.remainingSeconds > 0) {
         emit(FocusState(
           status: FocusStatus.running,
