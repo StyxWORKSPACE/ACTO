@@ -4,7 +4,7 @@ class CodingLog {
   final int commitCount;
   final List<String> commitMessages;
 
-  CodingLog({
+  const CodingLog({
     required this.date,
     required this.codingMinutes,
     required this.commitCount,

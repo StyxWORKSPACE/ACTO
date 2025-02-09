@@ -13,7 +13,7 @@ class PortfolioState {
 
   int get incompleteProjectCount => projects.where((p) => p.status != ProjectStatus.completed).length;
 
-  PortfolioState({
+  const PortfolioState({
     this.projects = const [],
     this.repositories = const [],
     this.projectCommits = const {},
@@ -22,6 +22,33 @@ class PortfolioState {
     this.error,
     this.pomodoroMinutes = 0,
   });
+
+  CodingLog get todayCodingTime {
+    final now = DateTime.now();
+    return codingLogs.firstWhere(
+      (log) => log.date.year == now.year && 
+               log.date.month == now.month && 
+               log.date.day == now.day,
+      orElse: () => CodingLog(
+        date: now,
+        codingMinutes: 0,
+        commitCount: 0,
+        commitMessages: [],
+      ),
+    );
+  }
+
+  int get todayCommitCount {
+    final today = DateTime.now();
+    final todayStart = DateTime(today.year, today.month, today.day);
+    final todayEnd = todayStart.add(const Duration(days: 1));
+
+    return projectCommits.values
+        .expand((commits) => commits)
+        .where((commit) =>
+            commit.date.isAfter(todayStart) && commit.date.isBefore(todayEnd))
+        .length;
+  }
 
   PortfolioState copyWith({
     List<PortfolioProject>? projects,
@@ -40,22 +67,6 @@ class PortfolioState {
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
       pomodoroMinutes: pomodoroMinutes ?? this.pomodoroMinutes,
-    );
-  }
-
-  CodingLog get todayCodingTime {
-    final now = DateTime.now();
-    return codingLogs.firstWhere(
-      (log) => log.date.year == now.year && 
-               log.date.month == now.month && 
-               log.date.day == now.day,
-      orElse: () => CodingLog(
-        date: now,
-        codingMinutes: 0,
-        additionalMinutes: 0,
-        commitCount: 0,
-        commitMessages: [],
-      ),
     );
   }
 } 

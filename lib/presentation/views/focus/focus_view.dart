@@ -8,7 +8,7 @@ class FocusView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => FocusViewModel(),
+      create: (context) => FocusViewModel(context),
       child: Scaffold(
         body: SafeArea(
           child: BlocBuilder<FocusViewModel, FocusState>(

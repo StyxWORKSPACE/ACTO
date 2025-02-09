@@ -4,43 +4,7 @@ import '../../data/models/portfolio_project.dart';
 import '../../data/models/github_models.dart';
 import '../../data/services/github_service.dart';
 import '../../data/repositories/portfolio_repository.dart';
-
-class PortfolioState {
-  final List<CodingLog> codingLogs;
-  final List<PortfolioProject> projects;
-  final List<Repository> repositories;
-  final Map<String, List<Commit>> projectCommits;
-  final bool isLoading;
-  final int pomodoroMinutes;
-
-  PortfolioState({
-    this.codingLogs = const [],
-    this.projects = const [],
-    this.repositories = const [],
-    this.projectCommits = const {},
-    this.isLoading = false,
-    this.pomodoroMinutes = 0,
-  });
-
-  String get todayCodingTime {
-    final today = DateTime.now();
-    final todayLog = codingLogs.firstWhere(
-      (log) => log.date.day == today.day && 
-               log.date.month == today.month &&
-               log.date.year == today.year,
-      orElse: () => CodingLog(
-        date: today,
-        codingMinutes: 0,
-        commitCount: 0,
-        commitMessages: [],
-      ),
-    );
-    return '오늘 ${todayLog.formattedCodingTime} 코딩함 ${todayLog.rating}';
-  }
-
-  int get incompleteProjectCount => 
-      projects.where((p) => p.status != ProjectStatus.completed).length;
-}
+import 'portfolio_state.dart';
 
 class PortfolioViewModel extends Cubit<PortfolioState> {
   final PortfolioRepository portfolioRepository;
@@ -49,23 +13,11 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
   PortfolioViewModel({
     required this.portfolioRepository,
     required this.gitHubService,
-  }) : super(PortfolioState(
-    codingLogs: [],
-    projects: [],
-    repositories: [],
-    projectCommits: {},
-    isLoading: false,
-    pomodoroMinutes: 0,
-  ));
+  }) : super(const PortfolioState());
 
   Future<void> loadGitHubData(String username) async {
-    emit(PortfolioState(
-      codingLogs: state.codingLogs,
-      projects: state.projects,
-      repositories: state.repositories,
-      projectCommits: state.projectCommits,
+    emit(state.copyWith(
       isLoading: true,
-      pomodoroMinutes: state.pomodoroMinutes,
     ));
 
     try {
@@ -96,23 +48,17 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
         projectDetails.map((entry) => MapEntry(entry.$1.name, entry.$3))
       );
 
-      emit(PortfolioState(
+      emit(state.copyWith(
         codingLogs: _generateCodingLogs(projectDetails.map((e) => e.$3).expand((commits) => commits).toList()),
         projects: projects,
         repositories: repositories,
         projectCommits: projectCommits,
         isLoading: false,
-        pomodoroMinutes: state.pomodoroMinutes,
       ));
     } catch (e) {
       print('Error loading GitHub data: $e');
-      emit(PortfolioState(
-        codingLogs: state.codingLogs,
-        projects: state.projects,
-        repositories: state.repositories,
-        projectCommits: state.projectCommits,
+      emit(state.copyWith(
         isLoading: false,
-        pomodoroMinutes: state.pomodoroMinutes,
       ));
     }
   }
@@ -172,13 +118,14 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
   }
 
   void updatePomodoroTime(int minutes) {
-    emit(PortfolioState(
-      codingLogs: state.codingLogs,
-      projects: state.projects,
-      repositories: state.repositories,
-      projectCommits: state.projectCommits,
-      isLoading: false,
+    emit(state.copyWith(
       pomodoroMinutes: state.pomodoroMinutes + minutes,
+    ));
+  }
+
+  void setPomodoroTime(int totalMinutes) {
+    emit(state.copyWith(
+      pomodoroMinutes: totalMinutes,
     ));
   }
 } 

@@ -1,5 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
+import 'portfolio_viewmodel.dart';
 
 class FocusState {
   final FocusStatus status;
@@ -22,8 +24,9 @@ enum FocusStatus { initial, running, paused, completed }
 class FocusViewModel extends Cubit<FocusState> {
   Timer? _timer;
   static const int defaultDuration = 25 * 60;
+  final BuildContext context;
   
-  FocusViewModel() : super(FocusState());
+  FocusViewModel(this.context) : super(FocusState());
 
   void startFocusMode() {
     if (state.status == FocusStatus.initial) {
@@ -53,11 +56,16 @@ class FocusViewModel extends Cubit<FocusState> {
   }
 
   void pauseTimer() {
-    _timer?.cancel();
+    final elapsedMinutes = (defaultDuration - state.remainingSeconds) ~/ 60;
+    if (elapsedMinutes > 0) {
+      context.read<PortfolioViewModel>().updatePomodoroTime(elapsedMinutes);
+    }
+    
     emit(FocusState(
       status: FocusStatus.paused,
       remainingSeconds: state.remainingSeconds,
     ));
+    _timer?.cancel();
   }
 
   void resetTimer() {
@@ -69,7 +77,24 @@ class FocusViewModel extends Cubit<FocusState> {
   }
 
   void _handleCompletion() {
-    // TODO: 보상 지급 로직 구현
+    final elapsedMinutes = (defaultDuration - state.remainingSeconds) ~/ 60;
+    if (elapsedMinutes > 0) {
+      context.read<PortfolioViewModel>().updatePomodoroTime(elapsedMinutes);
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('집중 시간 완료'),
+          content: Text('$elapsedMinutes분의 집중 시간이 기록되었습니다.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   @override
