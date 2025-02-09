@@ -49,7 +49,6 @@ class FocusViewModel extends Cubit<FocusState> {
         ));
       } else {
         _timer?.cancel();
-        emit(FocusState(status: FocusStatus.completed));
         _handleCompletion();
       }
     });
@@ -94,6 +93,8 @@ class FocusViewModel extends Cubit<FocusState> {
           ],
         ),
       );
+
+      emit(FocusState(status: FocusStatus.completed));
     }
   }
 

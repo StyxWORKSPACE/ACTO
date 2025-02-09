@@ -1,4 +1,5 @@
 // portfolio_view.dart
+import 'package:acto/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:acto/data/models/portfolio_project.dart';
@@ -94,33 +95,36 @@ class _PortfolioViewState extends State<PortfolioView> {
           )..loadGitHubData('StyxWORKSPACE'),
         ),
       ],
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(_selectedIndex == 0 ? '개발 현황' : '포모도로 타이머'),
-          backgroundColor: const Color(0xFF4F5D75),
-        ),
-        backgroundColor: const Color(0xFFF5F6F8),
-        body: IndexedStack(
-          index: _selectedIndex,
-          children: [
-            _buildPortfolioContent(),
-            const FocusView(),
-          ],
-        ),
-        bottomNavigationBar: BottomNavigationBar(
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard_rounded),
-              label: '포트폴리오',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.timer_rounded),
-              label: '포모도로',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          selectedItemColor: const Color(0xFF4F5D75),
-          onTap: _onItemTapped,
+      child: Container(
+        color: AppColors.container_background,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          appBar: AppBar(
+            title: Text(_selectedIndex == 0 ? '개발 현황' : '포모도로 타이머'),
+            backgroundColor: AppColors.background,
+          ),
+          body: IndexedStack(
+            index: _selectedIndex,
+            children: [
+              _buildPortfolioContent(),
+              const FocusView(),
+            ],
+          ),
+          bottomNavigationBar: BottomNavigationBar(
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.dashboard_rounded),
+                label: '포트폴리오',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.timer_rounded),
+                label: '포모도로',
+              ),
+            ],
+            currentIndex: _selectedIndex,
+            selectedItemColor: const Color(0xFF4F5D75),
+            onTap: _onItemTapped,
+          ),
         ),
       ),
     );
