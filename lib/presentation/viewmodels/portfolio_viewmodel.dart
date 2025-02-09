@@ -7,16 +7,16 @@ import '../../data/services/github_service.dart';
 class PortfolioState {
   final List<CodingLog> codingLogs;
   final List<PortfolioProject> projects;
-  final bool isLoading;
   final List<Repository> repositories;
-  final List<Commit> recentCommits;
+  final Map<String, List<Commit>> projectCommits;
+  final bool isLoading;
 
   PortfolioState({
-    required this.codingLogs,
-    required this.projects,
-    this.isLoading = false,
+    this.codingLogs = const [],
+    this.projects = const [],
     this.repositories = const [],
-    this.recentCommits = const [],
+    this.projectCommits = const {},
+    this.isLoading = false,
   });
 
   String get todayCodingTime {
@@ -56,23 +56,45 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
 
     try {
       final repositories = await _gitHubService.getUserRepositories(username);
-      final recentCommits = await _gitHubService.getRecentCommits(
-        username,
-        repositories.first.name, // 첫 번째 레포지토리의 커밋을 가져옴
+      final projectDetails = await Future.wait(
+        repositories.map((repo) async {
+          final details = await _gitHubService.getRepositoryDetails(username, repo.name);
+          final commits = await _gitHubService.getRecentCommits(username, repo.name);
+          return (repo, details, commits);  // 튜플로 변경
+        }),
       );
 
-      // 커밋 데이터를 기반으로 코딩 로그 생성
-      final logs = _generateCodingLogs(recentCommits);
+      final projects = projectDetails.map((entry) {
+        final (repo, details, commits) = entry;  // 튜플 분해
+        
+        // 첫 번째 커밋 날짜를 시작일로 사용
+        final startDate = commits.isNotEmpty 
+            ? commits.last.date  // commits는 최신순으로 정렬되어 있으므로 마지막 커밋이 가장 오래된 것
+            : repo.updatedAt;    // 커밋이 없는 경우 레포지토리 생성일 사용
+        
+        return PortfolioProject(
+          title: repo.name,
+          description: repo.description,
+          startDate: startDate,
+          status: _determineProjectStatus(details),
+          completionPercentage: details.calculateCompletionPercentage(),
+        );
+      }).toList();
+
+      // 최근 커밋 정보도 상태에 포함
+      final projectCommits = Map.fromEntries(
+        projectDetails.map((entry) => MapEntry(entry.$1.name, entry.$3))
+      );
 
       emit(PortfolioState(
-        codingLogs: logs,
-        projects: _generateProjects(repositories),
+        codingLogs: _generateCodingLogs(projectDetails.map((e) => e.$3).expand((commits) => commits).toList()),
+        projects: projects,
         repositories: repositories,
-        recentCommits: recentCommits,
+        projectCommits: projectCommits,
         isLoading: false,
       ));
     } catch (e) {
-      // 에러 처리
+      print('Error loading GitHub data: $e');
       emit(PortfolioState(
         codingLogs: state.codingLogs,
         projects: state.projects,
@@ -109,13 +131,15 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
     }).toList();
   }
 
-  List<PortfolioProject> _generateProjects(List<Repository> repositories) {
-    return repositories.map((repo) => PortfolioProject(
-      title: repo.name,
-      description: repo.description,
-      startDate: DateTime.now().subtract(const Duration(days: 30)), // 예시
-      status: ProjectStatus.inProgress,
-      completionPercentage: 70, // 예시
-    )).toList();
+  ProjectStatus _determineProjectStatus(RepositoryDetails details) {
+    final completionPercentage = details.calculateCompletionPercentage();
+    
+    if (completionPercentage >= 100) {
+      return ProjectStatus.completed;
+    } else if (details.closedIssues > 0 || details.commitCount > 0) {
+      return ProjectStatus.inProgress;
+    } else {
+      return ProjectStatus.delayed;
+    }
   }
 } 
