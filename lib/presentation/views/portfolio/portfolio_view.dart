@@ -31,10 +31,7 @@ class PortfolioView extends StatelessWidget {
               return const Center(child: CircularProgressIndicator());
             }
 
-            final todayCommits = state.projectCommits.values
-                .expand((commits) => commits)
-                .where((commit) => _isToday(commit.date))
-                .length;
+            final todayCommits = context.read<PortfolioViewModel>().todayCommitCount;
 
             return ListView(
               padding: const EdgeInsets.all(20),

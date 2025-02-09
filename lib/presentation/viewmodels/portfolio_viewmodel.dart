@@ -157,4 +157,15 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
       return ProjectStatus.delayed;
     }
   }
+
+  int get todayCommitCount {
+    final today = DateTime.now();
+    return state.projectCommits.values
+        .expand((commits) => commits)
+        .where((commit) =>
+            commit.date.year == today.year &&
+            commit.date.month == today.month &&
+            commit.date.day == today.day)
+        .length;
+  }
 } 
