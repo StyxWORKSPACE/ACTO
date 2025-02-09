@@ -1,5 +1,6 @@
+import 'package:acto/presentation/views/portfolio/portfolio_view.dart';
 import 'package:flutter/material.dart';
-import 'package:acto/presentation/views/focus/focus_view.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const FocusView(),
+      home: const PortfolioView(),
     );
   }
 } 
