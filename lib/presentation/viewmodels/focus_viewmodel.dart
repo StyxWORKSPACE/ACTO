@@ -23,21 +23,46 @@ enum FocusStatus { initial, running, paused, completed }
 
 class FocusViewModel extends Cubit<FocusState> {
   Timer? _timer;
+  Timer? _dateCheckTimer;
   static const int defaultDuration = 25 * 60;
   final BuildContext context;
+  DateTime _currentDate = DateTime.now();
+  int _lastSavedSeconds = 0;  // 마지막으로 저장된 시간 추적
   
   // 테스트를 위한 배속 설정 (기본값 1)
   // 예: 2.0 = 2배속, 5.0 = 5배속
   static const double timeMultiplier = 1.0;
   
-  FocusViewModel(this.context) : super(FocusState());
+  FocusViewModel(this.context) : super(FocusState()) {
+    // 자정이 되는지 체크하는 타이머 시작
+    _startDateCheckTimer();
+  }
+
+  void _startDateCheckTimer() {
+    _dateCheckTimer?.cancel();
+    _dateCheckTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
+      final now = DateTime.now();
+      if (now.day != _currentDate.day) {
+        // 날짜가 변경됨
+        _currentDate = now;
+        if (state.status == FocusStatus.running) {
+          // 진행 중인 포모도로가 있다면 현재까지의 시간을 저장
+          final elapsedSeconds = defaultDuration - state.remainingSeconds;
+          if (elapsedSeconds > 0) {
+            context.read<PortfolioViewModel>().updatePomodoroTime(elapsedSeconds);
+          }
+        }
+        // 새로운 날짜로 초기화
+        context.read<PortfolioViewModel>().resetPomodoroTime();
+      }
+    });
+  }
 
   void startFocusMode() {
     if (state.status == FocusStatus.initial) {
-      // 초기 상태에서만 새로운 타이머 시작
       emit(FocusState(status: FocusStatus.running, remainingSeconds: defaultDuration));
+      _lastSavedSeconds = 0;  // 초기화
     } else {
-      // 일시정지 상태에서는 현재 남은 시간으로 계속 진행
       emit(FocusState(status: FocusStatus.running, remainingSeconds: state.remainingSeconds));
     }
     _startTimer();
@@ -62,9 +87,12 @@ class FocusViewModel extends Cubit<FocusState> {
   }
 
   void pauseTimer() {
-    final elapsedSeconds = defaultDuration - state.remainingSeconds;
-    if (elapsedSeconds > 0) {
-      context.read<PortfolioViewModel>().updatePomodoroTime(elapsedSeconds);
+    final currentElapsedSeconds = defaultDuration - state.remainingSeconds;
+    final newSeconds = currentElapsedSeconds - _lastSavedSeconds;  // 새로 경과된 시간만 계산
+    
+    if (newSeconds > 0) {
+      context.read<PortfolioViewModel>().updatePomodoroTime(newSeconds);
+      _lastSavedSeconds = currentElapsedSeconds;  // 저장된 시간 업데이트
     }
     
     emit(FocusState(
@@ -76,10 +104,8 @@ class FocusViewModel extends Cubit<FocusState> {
 
   void resetTimer() {
     _timer?.cancel();
-    emit(FocusState(
-      status: FocusStatus.initial,
-      remainingSeconds: defaultDuration,
-    ));
+    _lastSavedSeconds = 0;  // 초기화
+    emit(FocusState());
   }
 
   void _handleCompletion() {
@@ -107,6 +133,7 @@ class FocusViewModel extends Cubit<FocusState> {
 
   @override
   Future<void> close() {
+    _dateCheckTimer?.cancel();
     _timer?.cancel();
     return super.close();
   }

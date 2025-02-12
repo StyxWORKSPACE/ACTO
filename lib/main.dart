@@ -6,14 +6,31 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'core/config/app_config.dart';
 import 'data/repositories/portfolio_repository.dart';
 import 'data/services/github_service.dart';
+import 'data/services/local_storage_service.dart';
 
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();  // Flutter 바인딩 초기화
+  
+  // LocalStorageService 초기화
+  final localStorageService = LocalStorageService();
+  final initialPomodoroTime = await localStorageService.loadPomodoroTime();
+  
+  runApp(MyApp(
+    initialPomodoroTime: initialPomodoroTime,
+    localStorageService: localStorageService,
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final int initialPomodoroTime;
+  final LocalStorageService localStorageService;
+
+  const MyApp({
+    super.key,
+    required this.initialPomodoroTime,
+    required this.localStorageService,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -24,11 +41,13 @@ class MyApp extends StatelessWidget {
           token: AppConfig.githubToken,
           username: AppConfig.githubUsername,
         ),
+        localStorageService: localStorageService,
+        initialPomodoroTime: initialPomodoroTime,
       )..loadGitHubData(AppConfig.githubUsername),
       child: MaterialApp(
         title: 'Acto',
         theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
           useMaterial3: true,
         ),
         home: const PortfolioView(),
