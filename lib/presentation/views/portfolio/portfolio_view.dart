@@ -8,10 +8,9 @@ import 'package:acto/presentation/views/portfolio/project_detail_view.dart';
 import '../../viewmodels/portfolio_state.dart';
 import '../../viewmodels/portfolio_viewmodel.dart';
 import '../../../data/models/github_models.dart';
-import '../../../data/repositories/portfolio_repository.dart';
-import '../../../data/services/github_service.dart';
 import '../../../presentation/widgets/circle_progress_indicator.dart';
-import '../../../core/config/app_config.dart';
+import '../../widgets/pomodoro_history_view.dart';
+import '../focus/focus_history_view.dart';
 
 class PortfolioView extends StatefulWidget {
   const PortfolioView({super.key});
@@ -205,9 +204,25 @@ class _PortfolioViewState extends State<PortfolioView> {
     final minutes = (state.pomodoroSeconds % 3600) ~/ 60;
     final seconds = state.pomodoroSeconds % 60;
 
-    return Text(
-      '총 집중 시간: ${hours}시간 ${minutes}분 ${seconds}초',
-      style: const TextStyle(color: Colors.white, fontSize: 16),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '총 집중 시간: ${hours}시간 ${minutes}분 ${seconds}초',
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        IconButton(
+          icon: const Icon(Icons.history, color: Colors.white),
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const FocusHistoryView(),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 

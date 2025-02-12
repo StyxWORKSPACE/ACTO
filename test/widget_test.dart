@@ -5,15 +5,22 @@
 // gestures. You can also use WidgetTester to find child widgets in the widget
 // tree, read text, and verify that the values of widget properties are correct.
 
+import 'package:acto/data/services/local_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:acto/main.dart';
 
+
 void main() {
   testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    final localStorageService = LocalStorageService();
+    final initialPomodoroTime = await localStorageService.loadPomodoroTime();
+
+    await tester.pumpWidget(MyApp(
+      initialPomodoroTime: initialPomodoroTime,
+      localStorageService: localStorageService,
+    ));
 
     // Verify that our counter starts at 0.
     expect(find.text('0'), findsOneWidget);

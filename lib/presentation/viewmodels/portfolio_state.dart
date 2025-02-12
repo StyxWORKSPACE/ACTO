@@ -10,6 +10,7 @@ class PortfolioState {
   final bool isLoading;
   final String? error;
   final int pomodoroSeconds;
+  final Map<String, int> pomodoroHistory;
 
   int get incompleteProjectCount => projects.where((p) => p.status != ProjectStatus.completed).length;
 
@@ -21,6 +22,7 @@ class PortfolioState {
     this.isLoading = true,
     this.error,
     this.pomodoroSeconds = 0,
+    this.pomodoroHistory = const {},
   });
 
   CodingLog get todayCodingTime {
@@ -58,6 +60,7 @@ class PortfolioState {
     bool? isLoading,
     String? error,
     int? pomodoroSeconds,
+    Map<String, int>? pomodoroHistory,
   }) {
     return PortfolioState(
       projects: projects ?? this.projects,
@@ -65,8 +68,9 @@ class PortfolioState {
       projectCommits: projectCommits ?? this.projectCommits,
       codingLogs: codingLogs ?? this.codingLogs,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      error: error,
       pomodoroSeconds: pomodoroSeconds ?? this.pomodoroSeconds,
+      pomodoroHistory: pomodoroHistory ?? this.pomodoroHistory,
     );
   }
 } 

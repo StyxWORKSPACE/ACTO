@@ -4,61 +4,71 @@ import '../../data/models/portfolio_project.dart';
 import '../../data/models/github_models.dart';
 import '../../data/services/github_service.dart';
 import '../../data/repositories/portfolio_repository.dart';
+import '../../data/services/local_storage_service.dart';
 import 'portfolio_state.dart';
 
 class PortfolioViewModel extends Cubit<PortfolioState> {
   final PortfolioRepository portfolioRepository;
   final GitHubService gitHubService;
+  final LocalStorageService localStorageService;
   
   PortfolioViewModel({
     required this.portfolioRepository,
     required this.gitHubService,
-  }) : super(const PortfolioState());
+    required this.localStorageService,
+    required int initialPomodoroTime,
+  }) : super(PortfolioState(pomodoroSeconds: initialPomodoroTime));
 
   Future<void> loadGitHubData(String username) async {
-    emit(state.copyWith(
-      isLoading: true,
-    ));
+    emit(state.copyWith(isLoading: true));
 
     try {
+      // 1. 저장된 진행률 로드
+      final savedProgress = await localStorageService.loadProjectProgress();
+
+      // 2. GitHub API에서 저장소 정보 가져오기
       final repositories = await gitHubService.getUserRepositories(username);
       
-      final projectDetails = await Future.wait(
-        repositories.map((repo) async {
-          final details = await gitHubService.getRepositoryDetails(username, repo.name);
-          final commits = await gitHubService.getRecentCommits(username, repo.name);
-          return (repo, details, commits);
-        }),
-      );
+      if (repositories.isEmpty) {
+        throw Exception('No GitHub repositories found');
+      }
 
-      final projects = projectDetails.map((entry) {
-        final (repo, details, commits) = entry;
-        final startDate = commits.isNotEmpty ? commits.last.date : repo.updatedAt;
-
-        return PortfolioProject(
-          title: repo.name,
+      // 3. 저장된 진행률 적용
+      final updatedRepositories = repositories.map((repo) {
+        return Repository(
+          name: repo.name,
           description: repo.description,
-          startDate: startDate,
-          status: _determineProjectStatus(details),
-          completionPercentage: details.calculateCompletionPercentage(),
+          language: repo.language,
+          stars: repo.stars,
+          updatedAt: repo.updatedAt,
+          isPrivate: repo.isPrivate,
+          completionPercentage: savedProgress[repo.name] ?? 0,
         );
       }).toList();
 
-      final projectCommits = Map.fromEntries(
-        projectDetails.map((entry) => MapEntry(entry.$1.name, entry.$3))
-      );
+      // 4. 커밋 정보 로드 - 에러 처리 추가
+      final projectCommits = <MapEntry<String, List<Commit>>>[];
+      for (final repo in updatedRepositories) {
+        try {
+          final commits = await gitHubService.getRecentCommits(username, repo.name);
+          projectCommits.add(MapEntry(repo.name, commits));
+        } catch (e) {
+          print('Failed to load commits for ${repo.name}: $e');
+          projectCommits.add(MapEntry(repo.name, []));  // 빈 커밋 리스트로 대체
+        }
+      }
 
+      // 5. 상태 업데이트
       emit(state.copyWith(
-        codingLogs: _generateCodingLogs(projectDetails.map((e) => e.$3).expand((commits) => commits).toList()),
-        projects: projects,
-        repositories: repositories,
-        projectCommits: projectCommits,
+        repositories: updatedRepositories,
+        projectCommits: Map.fromEntries(projectCommits),
         isLoading: false,
       ));
     } catch (e) {
       print('Error loading GitHub data: $e');
       emit(state.copyWith(
         isLoading: false,
+        error: e.toString(),
       ));
     }
   }
@@ -117,19 +127,23 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
     return count;
   }
 
-  void updatePomodoroTime(int seconds) {
-    emit(state.copyWith(
-      pomodoroSeconds: state.pomodoroSeconds + seconds,
-    ));
+  Future<void> updatePomodoroTime(int seconds) async {
+    try {
+      final newTotal = state.pomodoroSeconds + seconds;
+      // 로컬 저장소에 저장
+      await localStorageService.savePomodoroTime(newTotal);
+      // 상태 업데이트
+      emit(state.copyWith(
+        pomodoroSeconds: newTotal,
+      ));
+      print('Updated pomodoro time: $newTotal seconds'); // 디버깅용
+    } catch (e) {
+      print('Error updating pomodoro time: $e');
+    }
   }
 
-  void setPomodoroTime(int totalSeconds) {
-    emit(state.copyWith(
-      pomodoroSeconds: totalSeconds,
-    ));
-  }
-
-  void updateProjectProgress(String projectName, int progress) {
+  @override
+  Future<void> updateProjectProgress(String projectName, int progress) async {
     final List<Repository> updatedRepositories = state.repositories.map((repo) {
       if (repo.name == projectName) {
         return Repository(
@@ -145,6 +159,43 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
       return repo;
     }).toList();
 
+    // 로컬에 진행률 저장
+    final progressMap = Map.fromEntries(
+      updatedRepositories.map((repo) => MapEntry(repo.name, repo.completionPercentage))
+    );
+    await localStorageService.saveProjectProgress(progressMap);
+
     emit(state.copyWith(repositories: updatedRepositories));
+  }
+
+  @override
+  Future<void> setPomodoroTime(int totalSeconds) async {
+    try {
+      // 1. 로컬 저장소에 저장
+      await localStorageService.savePomodoroTime(totalSeconds);
+      
+      // 2. 상태 업데이트
+      emit(state.copyWith(pomodoroSeconds: totalSeconds));
+      
+      print('Saved pomodoro time: $totalSeconds seconds'); // 디버깅용
+    } catch (e) {
+      print('Error saving pomodoro time: $e');
+    }
+  }
+
+  // 포모도로 시간 증가 메서드 추가
+  Future<void> incrementPomodoroTime(int additionalSeconds) async {
+    final newTotal = state.pomodoroSeconds + additionalSeconds;
+    await setPomodoroTime(newTotal);
+  }
+
+  Future<void> loadPomodoroHistory() async {
+    final history = await localStorageService.loadPomodoroHistory();
+    emit(state.copyWith(pomodoroHistory: history));
+  }
+
+  Future<void> resetPomodoroTime() async {
+    await localStorageService.savePomodoroTime(0);
+    emit(state.copyWith(pomodoroSeconds: 0));
   }
 } 
