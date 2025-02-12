@@ -4,41 +4,7 @@ import '../../data/models/portfolio_project.dart';
 import '../../data/models/github_models.dart';
 import '../../data/services/github_service.dart';
 import '../../data/repositories/portfolio_repository.dart';
-
-class PortfolioState {
-  final List<CodingLog> codingLogs;
-  final List<PortfolioProject> projects;
-  final List<Repository> repositories;
-  final Map<String, List<Commit>> projectCommits;
-  final bool isLoading;
-
-  PortfolioState({
-    this.codingLogs = const [],
-    this.projects = const [],
-    this.repositories = const [],
-    this.projectCommits = const {},
-    this.isLoading = false,
-  });
-
-  String get todayCodingTime {
-    final today = DateTime.now();
-    final todayLog = codingLogs.firstWhere(
-      (log) => log.date.day == today.day && 
-               log.date.month == today.month &&
-               log.date.year == today.year,
-      orElse: () => CodingLog(
-        date: today,
-        codingMinutes: 0,
-        commitCount: 0,
-        commitMessages: [],
-      ),
-    );
-    return '오늘 ${todayLog.formattedCodingTime} 코딩함 ${todayLog.rating}';
-  }
-
-  int get incompleteProjectCount => 
-      projects.where((p) => p.status != ProjectStatus.completed).length;
-}
+import 'portfolio_state.dart';
 
 class PortfolioViewModel extends Cubit<PortfolioState> {
   final PortfolioRepository portfolioRepository;
@@ -47,44 +13,28 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
   PortfolioViewModel({
     required this.portfolioRepository,
     required this.gitHubService,
-  }) : super(PortfolioState(
-    codingLogs: [],
-    projects: [],
-    repositories: [],
-    projectCommits: {},
-    isLoading: false,
-  ));
+  }) : super(const PortfolioState());
 
   Future<void> loadGitHubData(String username) async {
-    emit(PortfolioState(
-      codingLogs: state.codingLogs,
-      projects: state.projects,
-      repositories: state.repositories,
-      projectCommits: state.projectCommits,
+    emit(state.copyWith(
       isLoading: true,
     ));
 
     try {
-      print('Loading GitHub data for user: $username');
       final repositories = await gitHubService.getUserRepositories(username);
-      print('Repositories loaded: ${repositories.length}');
-
+      
       final projectDetails = await Future.wait(
         repositories.map((repo) async {
           final details = await gitHubService.getRepositoryDetails(username, repo.name);
           final commits = await gitHubService.getRecentCommits(username, repo.name);
-          return (repo, details, commits);  // 튜플로 변경
+          return (repo, details, commits);
         }),
       );
 
       final projects = projectDetails.map((entry) {
-        final (repo, details, commits) = entry;  // 튜플 분해
-        
-        // 첫 번째 커밋 날짜를 시작일로 사용
-        final startDate = commits.isNotEmpty 
-            ? commits.last.date  // commits는 최신순으로 정렬되어 있으므로 마지막 커밋이 가장 오래된 것
-            : repo.updatedAt;    // 커밋이 없는 경우 레포지토리 생성일 사용
-        
+        final (repo, details, commits) = entry;
+        final startDate = commits.isNotEmpty ? commits.last.date : repo.updatedAt;
+
         return PortfolioProject(
           title: repo.name,
           description: repo.description,
@@ -94,12 +44,11 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
         );
       }).toList();
 
-      // 최근 커밋 정보도 상태에 포함
       final projectCommits = Map.fromEntries(
         projectDetails.map((entry) => MapEntry(entry.$1.name, entry.$3))
       );
 
-      emit(PortfolioState(
+      emit(state.copyWith(
         codingLogs: _generateCodingLogs(projectDetails.map((e) => e.$3).expand((commits) => commits).toList()),
         projects: projects,
         repositories: repositories,
@@ -108,11 +57,7 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
       ));
     } catch (e) {
       print('Error loading GitHub data: $e');
-      emit(PortfolioState(
-        codingLogs: state.codingLogs,
-        projects: state.projects,
-        repositories: state.repositories,
-        projectCommits: state.projectCommits,
+      emit(state.copyWith(
         isLoading: false,
       ));
     }
@@ -160,12 +105,46 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
 
   int get todayCommitCount {
     final today = DateTime.now();
-    return state.projectCommits.values
+    final todayStart = DateTime(today.year, today.month, today.day); // 오늘 시작 시간
+    final todayEnd = todayStart.add(const Duration(days: 1)); // 내일 시작 시간
+
+    final count = state.projectCommits.values
         .expand((commits) => commits)
         .where((commit) =>
-            commit.date.year == today.year &&
-            commit.date.month == today.month &&
-            commit.date.day == today.day)
+            commit.date.isAfter(todayStart) && commit.date.isBefore(todayEnd))
         .length;
+
+    return count;
+  }
+
+  void updatePomodoroTime(int seconds) {
+    emit(state.copyWith(
+      pomodoroSeconds: state.pomodoroSeconds + seconds,
+    ));
+  }
+
+  void setPomodoroTime(int totalSeconds) {
+    emit(state.copyWith(
+      pomodoroSeconds: totalSeconds,
+    ));
+  }
+
+  void updateProjectProgress(String projectName, int progress) {
+    final List<Repository> updatedRepositories = state.repositories.map((repo) {
+      if (repo.name == projectName) {
+        return Repository(
+          name: repo.name,
+          description: repo.description,
+          language: repo.language,
+          stars: repo.stars,
+          updatedAt: repo.updatedAt,
+          completionPercentage: progress,
+          isPrivate: repo.isPrivate,
+        );
+      }
+      return repo;
+    }).toList();
+
+    emit(state.copyWith(repositories: updatedRepositories));
   }
 } 

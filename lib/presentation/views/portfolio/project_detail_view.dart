@@ -1,3 +1,4 @@
+import 'package:acto/core/constants/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../../../data/models/portfolio_project.dart';
 import '../../../data/models/github_models.dart';
@@ -17,7 +18,7 @@ class ProjectDetailView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAFAFA),
+      backgroundColor: AppColors.container_background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,

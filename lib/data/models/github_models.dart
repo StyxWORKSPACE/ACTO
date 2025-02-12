@@ -25,6 +25,7 @@ class Repository {
   final int stars;
   final DateTime updatedAt;
   final bool isPrivate;
+  final int completionPercentage;
 
   Repository({
     required this.name,
@@ -33,6 +34,7 @@ class Repository {
     required this.stars,
     required this.updatedAt,
     required this.isPrivate,
+    required this.completionPercentage,
   });
 
   factory Repository.fromJson(Map<String, dynamic> json) {
@@ -43,6 +45,7 @@ class Repository {
       stars: json['stargazers_count'],
       updatedAt: DateTime.parse(json['updated_at']),
       isPrivate: json['private'],
+      completionPercentage: json['completion_percentage'] ?? 0,
     );
   }
 }
