@@ -10,6 +10,7 @@ import '../../viewmodels/portfolio_viewmodel.dart';
 import '../../../data/models/github_models.dart';
 import '../../../data/repositories/portfolio_repository.dart';
 import '../../../data/services/github_service.dart';
+import '../../../presentation/widgets/circle_progress_indicator.dart';
 
 class PortfolioView extends StatefulWidget {
   const PortfolioView({super.key});
@@ -282,19 +283,35 @@ class _PortfolioViewState extends State<PortfolioView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Expanded(child: Text(repo.name, style: _whiteTextStyle(16, true))),
-                  Text('70%', style: _whiteTextStyle(14, false)),
+                  Expanded(
+                    child: Text(repo.name, style: _whiteTextStyle(16, true))
+                  ),
+                  CircleProgressIndicator(
+                    percentage: repo.completionPercentage / 100,
+                    size: 40,
+                  ),
                 ],
               ),
               if (repo.description?.isNotEmpty ?? false) ...[
                 const SizedBox(height: 8),
                 Text(
                   repo.description!,
-                  style: _whiteTextStyle(14, false).copyWith(color: Colors.white.withOpacity(0.7)),
+                  style: _whiteTextStyle(14, false)
+                      .copyWith(color: Colors.white.withOpacity(0.7)),
                 ),
               ],
               const SizedBox(height: 16),
-              _buildProgressBar(),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: LinearProgressIndicator(
+                  value: repo.completionPercentage / 100,
+                  backgroundColor: Colors.white.withOpacity(0.1),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _getProgressColor(repo.completionPercentage / 100),
+                  ),
+                  minHeight: 8,
+                ),
+              ),
               const SizedBox(height: 12),
               _buildLanguageTag(repo.language),
             ],
@@ -302,6 +319,13 @@ class _PortfolioViewState extends State<PortfolioView> {
         ),
       ),
     );
+  }
+
+  Color _getProgressColor(double percentage) {
+    if (percentage < 0.3) return Colors.redAccent;
+    if (percentage < 0.7) return Colors.orangeAccent;
+    if (percentage < 0.9) return Colors.lightBlueAccent;
+    return Colors.greenAccent;
   }
 
   void _navigateToProjectDetail(BuildContext context, Repository repo, PortfolioState state) {
@@ -328,32 +352,6 @@ class _PortfolioViewState extends State<PortfolioView> {
       color: Colors.white,
       fontSize: fontSize,
       fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
-    );
-  }
-
-  Widget _buildProgressBar() {
-    return Stack(
-      children: [
-        Container(
-          height: 4,
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const FractionallySizedBox(
-          widthFactor: 0.7,
-          child: SizedBox(
-            height: 4,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(colors: [Color(0xFF4F5D75), Colors.white]),
-                borderRadius: BorderRadius.all(Radius.circular(2)),
-              ),
-            ),
-          ),
-        ),
-      ],
     );
   }
 
