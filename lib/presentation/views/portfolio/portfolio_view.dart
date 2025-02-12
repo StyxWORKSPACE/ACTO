@@ -11,6 +11,7 @@ import '../../../data/models/github_models.dart';
 import '../../../data/repositories/portfolio_repository.dart';
 import '../../../data/services/github_service.dart';
 import '../../../presentation/widgets/circle_progress_indicator.dart';
+import '../../../core/config/app_config.dart';
 
 class PortfolioView extends StatefulWidget {
   const PortfolioView({super.key});
@@ -87,45 +88,35 @@ class _PortfolioViewState extends State<PortfolioView> {
 
   @override
   Widget build(BuildContext context) {
-    return MultiBlocProvider(
-      providers: [
-        BlocProvider(
-          create: (context) => PortfolioViewModel(
-            portfolioRepository: PortfolioRepository(),
-            gitHubService: GitHubService(),
-          )..loadGitHubData('StyxWORKSPACE'),
+    return Container(
+      color: AppColors.container_background,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        appBar: AppBar(
+          title: Text(_selectedIndex == 0 ? '개발 현황' : '포모도로 타이머'),
+          backgroundColor: AppColors.background,
         ),
-      ],
-      child: Container(
-        color: AppColors.container_background,
-        child: Scaffold(
-          backgroundColor: Colors.transparent,
-          appBar: AppBar(
-            title: Text(_selectedIndex == 0 ? '개발 현황' : '포모도로 타이머'),
-            backgroundColor: AppColors.background,
-          ),
-          body: IndexedStack(
-            index: _selectedIndex,
-            children: [
-              _buildPortfolioContent(),
-              const FocusView(),
-            ],
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.dashboard_rounded),
-                label: '포트폴리오',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.timer_rounded),
-                label: '포모도로',
-              ),
-            ],
-            currentIndex: _selectedIndex,
-            selectedItemColor: const Color(0xFF4F5D75),
-            onTap: _onItemTapped,
-          ),
+        body: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            _buildPortfolioContent(),
+            const FocusView(),
+          ],
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_rounded),
+              label: '포트폴리오',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.timer_rounded),
+              label: '포모도로',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          selectedItemColor: const Color(0xFF4F5D75),
+          onTap: _onItemTapped,
         ),
       ),
     );
@@ -286,9 +277,12 @@ class _PortfolioViewState extends State<PortfolioView> {
                   Expanded(
                     child: Text(repo.name, style: _whiteTextStyle(16, true))
                   ),
-                  CircleProgressIndicator(
-                    percentage: repo.completionPercentage / 100,
-                    size: 40,
+                  GestureDetector(
+                    onTap: () => _showProgressEditDialog(context, repo),
+                    child: CircleProgressIndicator(
+                      percentage: repo.completionPercentage / 100,
+                      size: 40,
+                    ),
                   ),
                 ],
               ),
@@ -374,6 +368,59 @@ class _PortfolioViewState extends State<PortfolioView> {
         colors: [Color(0xFF4F5D75), Color(0xFF2D3142)],
       ),
       borderRadius: BorderRadius.circular(20),
+    );
+  }
+
+  void _showProgressEditDialog(BuildContext context, Repository repo) {
+    double progress = repo.completionPercentage.toDouble();
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => BlocProvider.value(
+        value: context.read<PortfolioViewModel>(),
+        child: StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              title: Text('${repo.name} 진행도 수정'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('${progress.round()}%'),
+                  const SizedBox(height: 16),
+                  Slider(
+                    value: progress,
+                    min: 0,
+                    max: 100,
+                    divisions: 20,
+                    label: '${progress.round()}%',
+                    onChanged: (value) {
+                      setState(() {
+                        progress = value;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('취소'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    context.read<PortfolioViewModel>().updateProjectProgress(
+                      repo.name,
+                      progress.round(),
+                    );
+                    Navigator.pop(context);
+                  },
+                  child: const Text('저장'),
+                ),
+              ],
+            );
+          },
+        ),
+      ),
     );
   }
 }

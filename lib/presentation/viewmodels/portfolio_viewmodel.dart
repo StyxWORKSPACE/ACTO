@@ -128,4 +128,23 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
       pomodoroSeconds: totalSeconds,
     ));
   }
+
+  void updateProjectProgress(String projectName, int progress) {
+    final List<Repository> updatedRepositories = state.repositories.map((repo) {
+      if (repo.name == projectName) {
+        return Repository(
+          name: repo.name,
+          description: repo.description,
+          language: repo.language,
+          stars: repo.stars,
+          updatedAt: repo.updatedAt,
+          completionPercentage: progress,
+          isPrivate: repo.isPrivate,
+        );
+      }
+      return repo;
+    }).toList();
+
+    emit(state.copyWith(repositories: updatedRepositories));
+  }
 } 

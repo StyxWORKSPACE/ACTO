@@ -4,14 +4,20 @@ import '../models/github_models.dart';
 import '../../core/config/app_config.dart';
 
 class GitHubService {
+  final String token;
+  final String username;
   final String _baseUrl = 'https://api.github.com';
-  final String _token = AppConfig.githubToken;
-  
+
+  GitHubService({
+    required this.token,
+    required this.username,
+  });
+
   Future<List<CommitActivity>> getCommitActivity(String owner, String repo) async {
     final response = await http.get(
       Uri.parse('$_baseUrl/repos/$owner/$repo/stats/commit_activity'),
       headers: {
-        'Authorization': 'Bearer $_token',
+        'Authorization': 'Bearer $token',
         'Accept': 'application/vnd.github.v3+json',
       },
     );
@@ -28,7 +34,7 @@ class GitHubService {
     final response = await http.get(
       Uri.parse('$_baseUrl/users/$username/repos'),
       headers: {
-        'Authorization': 'Bearer $_token',
+        'Authorization': 'Bearer $token',
         'Accept': 'application/vnd.github.v3+json',
       },
     );
@@ -45,7 +51,7 @@ class GitHubService {
     final response = await http.get(
       Uri.parse('$_baseUrl/repos/$owner/$repo/commits'),
       headers: {
-        'Authorization': 'Bearer $_token',
+        'Authorization': 'Bearer $token',
         'Accept': 'application/vnd.github.v3+json',
       },
     );
@@ -63,7 +69,7 @@ class GitHubService {
     final issuesResponse = await http.get(
       Uri.parse('$_baseUrl/repos/$owner/$repo/issues?state=all'),
       headers: {
-        'Authorization': 'Bearer $_token',
+        'Authorization': 'Bearer $token',
         'Accept': 'application/vnd.github.v3+json',
       },
     );
@@ -71,7 +77,7 @@ class GitHubService {
     final milestonesResponse = await http.get(
       Uri.parse('$_baseUrl/repos/$owner/$repo/milestones'),
       headers: {
-        'Authorization': 'Bearer $_token',
+        'Authorization': 'Bearer $token',
         'Accept': 'application/vnd.github.v3+json',
       },
     );
@@ -79,7 +85,7 @@ class GitHubService {
     final commitsResponse = await http.get(
       Uri.parse('$_baseUrl/repos/$owner/$repo/commits'),
       headers: {
-        'Authorization': 'Bearer $_token',
+        'Authorization': 'Bearer $token',
         'Accept': 'application/vnd.github.v3+json',
       },
     );
