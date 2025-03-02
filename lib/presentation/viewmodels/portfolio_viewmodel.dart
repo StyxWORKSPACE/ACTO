@@ -127,16 +127,29 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
     return count;
   }
 
-  Future<void> updatePomodoroTime(int seconds) async {
+  Future<void> updatePomodoroTime(int additionalSeconds) async {
     try {
-      final newTotal = state.pomodoroSeconds + seconds;
+      if (additionalSeconds <= 0) {
+        print('Skipping update with non-positive seconds: $additionalSeconds');
+        return;
+      }
+      
+      final newTotal = state.pomodoroSeconds + additionalSeconds;
+      print('Updating pomodoro time: $additionalSeconds seconds added, new total: $newTotal');
+      
       // 로컬 저장소에 저장
       await localStorageService.savePomodoroTime(newTotal);
+      
+      // 히스토리도 함께 업데이트
+      final updatedHistory = await localStorageService.loadPomodoroHistory();
+      
       // 상태 업데이트
       emit(state.copyWith(
         pomodoroSeconds: newTotal,
+        pomodoroHistory: updatedHistory,
       ));
-      print('Updated pomodoro time: $newTotal seconds'); // 디버깅용
+      
+      print('State updated with new pomodoro time: ${state.pomodoroSeconds}');
     } catch (e) {
       print('Error updating pomodoro time: $e');
     }
@@ -197,5 +210,19 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
   Future<void> resetPomodoroTime() async {
     await localStorageService.savePomodoroTime(0);
     emit(state.copyWith(pomodoroSeconds: 0));
+  }
+
+  // 디버깅용 메서드
+  Future<void> resetAllData() async {
+    try {
+      await localStorageService.clearStorage();
+      emit(state.copyWith(
+        pomodoroSeconds: 0,
+        pomodoroHistory: {},
+      ));
+      print('All pomodoro data reset');
+    } catch (e) {
+      print('Error resetting data: $e');
+    }
   }
 } 

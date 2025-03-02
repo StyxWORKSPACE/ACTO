@@ -62,7 +62,7 @@ class FocusHistoryView extends StatelessWidget {
                     ),
                   ),
                   subtitle: Text(
-                    '집중 시간: ${hours}시간 ${minutes}분',
+                    '집중 시간: ${hours}시간 ${minutes}분 ${seconds%60}초',
                     style: const TextStyle(
                       color: Colors.grey,
                     ),
