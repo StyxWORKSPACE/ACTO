@@ -220,6 +220,7 @@ class _PortfolioViewState extends State<PortfolioView> {
                 builder: (context) => const FocusHistoryView(),
               ),
             );
+            context.read<PortfolioViewModel>().loadPomodoroHistory();
           },
         ),
       ],

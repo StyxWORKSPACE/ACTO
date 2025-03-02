@@ -115,4 +115,34 @@ class LocalStorageService {
       print('Error clearing storage: $e');
     }
   }
+
+  // 특정 날짜에 포모도로 시간 추가 (테스트용)
+  Future<void> addPomodoroTimeForDate(String dateString, int seconds) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // 현재 히스토리 불러오기
+      Map<String, int> history = await loadPomodoroHistory();
+      
+      // 해당 날짜의 기존 시간 가져오기
+      final existingSeconds = history[dateString] ?? 0;
+      
+      // 시간 추가
+      history[dateString] = existingSeconds + seconds;
+      
+      // 저장
+      await prefs.setString(_pomodoroHistoryKey, jsonEncode(history));
+      
+      // 오늘 날짜인 경우 현재 포모도로 시간도 업데이트
+      final today = DateTime.now().toIso8601String().split('T')[0];
+      if (dateString == today) {
+        final currentSeconds = await loadPomodoroTime();
+        await prefs.setInt(_pomodoroTimeKey, currentSeconds + seconds);
+      }
+      
+      print('Added $seconds seconds to date: $dateString, new total: ${history[dateString]}');
+    } catch (e) {
+      print('Error adding pomodoro time for date: $e');
+    }
+  }
 } 

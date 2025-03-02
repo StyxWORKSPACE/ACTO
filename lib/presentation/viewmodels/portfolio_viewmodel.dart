@@ -203,8 +203,13 @@ class PortfolioViewModel extends Cubit<PortfolioState> {
   }
 
   Future<void> loadPomodoroHistory() async {
-    final history = await localStorageService.loadPomodoroHistory();
-    emit(state.copyWith(pomodoroHistory: history));
+    try {
+      final history = await localStorageService.loadPomodoroHistory();
+      emit(state.copyWith(pomodoroHistory: history));
+      print('Pomodoro history loaded: ${history.length} entries');
+    } catch (e) {
+      print('Error loading pomodoro history: $e');
+    }
   }
 
   Future<void> resetPomodoroTime() async {

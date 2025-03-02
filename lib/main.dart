@@ -2,6 +2,7 @@ import 'package:acto/presentation/viewmodels/portfolio_viewmodel.dart';
 import 'package:acto/presentation/views/portfolio/portfolio_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter/foundation.dart';
 
 import 'core/config/app_config.dart';
 import 'data/repositories/portfolio_repository.dart';
@@ -10,9 +11,14 @@ import 'data/services/local_storage_service.dart';
 
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();  // Flutter 바인딩 초기화
+  WidgetsFlutterBinding.ensureInitialized();
   
-  // LocalStorageService 초기화
+  // 환경 설정 초기화
+  await AppConfig().initialize(
+    env: kDebugMode ? Environment.development : Environment.production
+  );
+  
+  // 로컬 스토리지 초기화
   final localStorageService = LocalStorageService();
   final initialPomodoroTime = await localStorageService.loadPomodoroTime();
   
